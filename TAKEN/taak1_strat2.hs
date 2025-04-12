@@ -1,22 +1,30 @@
 import Control.Concurrent (threadDelay)
+import Data.Traversable (for)
 
-data Maanlander = Maanlander 
+data Maanlander = Maanlander
     { hoogte :: Integer
     , brandstof :: Integer
     , fmax :: Integer
     , vmax :: Integer
-    , g :: Integer 
+    , g :: Integer
     } deriving (Show, Eq, Ord)
 
 teSnel :: Integer -> Integer -> Integer -> Integer -> Bool
 teSnel snelheid fmax hoogte g
-    | hoogte <= 0     = snelheid > 0 
+    | hoogte <= 0     = snelheid > 0
     | snelheid <= 0   = False
     | otherwise       =
         let nieuweSnelheid = snelheid - (fmax - g)
-            nieuweHoogte = hoogte - nieuweSnelheid
+            nieuweHoogte = hoogte - snelheid
         in teSnel nieuweSnelheid fmax nieuweHoogte g
 
+berekenMinimaleTegengas :: Integer -> Integer -> Integer -> Integer -> Integer -> Integer
+berekenMinimaleTegengas snelheid fmax hoogte g tegengas =
+    if teSnel snelheid fmax hoogte g then
+        let nieuweSnelheid = snelheid - min fmax tegengas
+        in berekenMinimaleTegengas nieuweSnelheid fmax hoogte g (tegengas + 1)
+    else
+        tegengas
 
 land :: [Maanlander] -> IO Integer
 land [] = return 0
@@ -40,10 +48,12 @@ land (x:y:xs) = do
         putStrLn "afremmen en landen"
         return (brandstof x - 2 * beginSnelheid + beginHoogte)
     else if teSnel beginSnelheid (fmax x) (beginHoogte - beginSnelheid) gVal then do
-        putStrLn "Lander gaat crashen, maximaal tegengas geven"
-        let nieuweSnelheid = beginSnelheid - fmax x + gVal
-            nieuweHoogte = beginHoogte - nieuweSnelheid
-            nieuweBrandstof = brandstof x - fmax x
+        putStrLn "Lander gaat crashen, minimale tegengas geven"
+        let tegengas = berekenMinimaleTegengas beginSnelheid (fmax x) (beginHoogte - beginSnelheid) gVal 1
+            snelheidNaRemmen = beginSnelheid - min (fmax x) tegengas
+            verbruikteBrandstof = beginSnelheid - snelheidNaRemmen
+            nieuweBrandstof = brandstof x - verbruikteBrandstof
+            nieuweHoogte = beginHoogte - snelheidNaRemmen
             nieuweLander = Maanlander nieuweHoogte nieuweBrandstof (fmax x) (vmax x) gVal
         land (nieuweLander : x : y : xs)
     else do
