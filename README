@@ -1,0 +1,4 @@
+opstarten met ghci weekX.hs
+functie + lijst waarop je da wilt uitvoeren
+reload = :r
+quit = :q
