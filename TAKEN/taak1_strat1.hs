@@ -36,7 +36,9 @@ land (x:y:xs) = do
     else if brandstof x <= 0 then do
         putStrLn "Lander heeft geen brandstof meer"
         return 0
-    else if beginHoogte < beginSnelheid && beginHoogte > beginSnelheid - fmax x then do
+    else if beginHoogte < beginSnelheid + gVal 
+        && beginHoogte > beginSnelheid - fmax x + gVal
+        && beginSnelheid - fmax x + gVal <= 0 then do
         putStrLn "afremmen en landen"
         return (brandstof x - 2 * beginSnelheid + beginHoogte)
     else if teSnel beginSnelheid (fmax x) (beginHoogte - beginSnelheid) gVal then do
