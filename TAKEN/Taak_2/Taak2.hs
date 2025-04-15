@@ -21,12 +21,17 @@ worstTeam m = if uncurry (>) (score m) then team2 m else team1 m
 
 -- INSTANCE FUNCTIES
 instance Comparable Voetballer where
-  gelijkwaardigheid a b = 1 - maximum 
-    [ abs (mean [aanval a - afstand a b, aanval b - afstand a b])
-    , abs (mean [verdediging a - afstand a b, verdediging b - afstand a b])
-    , abs (mean [keepen a - afstand a b, keepen b - afstand a b])
-    ]
-  afstand a b = abs (mean [aanval a, verdediging a, keepen a] - mean [aanval b, verdediging b, keepen b])
+  gelijkwaardigheid a b = 
+    let verschillen = [aanvalDiff, verdedigingDiff, keepenDiff]
+        aanvalDiff = abs (aanval a - aanval b)
+        verdedigingDiff = abs (verdediging a - verdediging b)
+        keepenDiff = abs (keepen a - keepen b) in
+    let gefilterdOnder = [x | x <- verschillen, x <= afstand a b]
+        gefilterdBoven = [x | x <- verschillen, x > afstand a b] 
+    in 1 - mean (gefilterdOnder ++ gefilterdBoven ++ gefilterdBoven ++ gefilterdBoven)
+  afstand a b = abs (
+    mean [aanval a, verdediging a, keepen a] - mean [aanval b, verdediging b, keepen b]
+    )
 
 instance Comparable VoetbalTeam where
   gelijkwaardigheid a b = mean [gelijkwaardigheid x y | x <- spelers a, y <- spelers b]
@@ -67,6 +72,25 @@ zoekPad lijst huidig doel maxStap bezocht _
   where
     buren = [x | x <- lijst, x /= huidig, afstand huidig x <= maxStap]
 
+-- Dummy data voor 5 verschillende voetballers
+noob1 = Voetballer { aanval = 0.10, verdediging = 0.05, keepen = 0.15 }
+gemiddeld1 = Voetballer { aanval = 0.95, verdediging = 0.05, keepen = 0.95 }
+verdediger1 = Voetballer { aanval = 0.05, verdediging = 0.80, keepen = 0.05 }
+aanvaller1 = Voetballer { aanval = 0.90, verdediging = 0.40, keepen = 0.25 }
+keeper1 = Voetballer { aanval = 0.20, verdediging = 0.35, keepen = 0.95 } 
 
-  
-  
+-- Dummy data voor 5 verschillende voetbalteams
+voetbalteamZwak = VoetbalTeam { spelers = [noob1, noob1, noob1], ranking = 1 }
+voetbalteamGemiddeld = VoetbalTeam { spelers = [gemiddeld1, gemiddeld1, verdediger1], ranking = 5 }
+voetbalteamVerdedigend = VoetbalTeam { spelers = [verdediger1, verdediger1, keeper1], ranking = 6 }
+voetbalteamAanvallend = VoetbalTeam { spelers = [aanvaller1, aanvaller1, gemiddeld1], ranking = 7 }
+voetbalteamTop = VoetbalTeam { spelers = [aanvaller1, verdediger1, keeper1], ranking = 10 }
+
+-- Dummy data voor 5 verschillende wedstrijden
+wedstrijd1 = Match { team1 = voetbalteamZwak, team2 = voetbalteamGemiddeld, score = (0, 3) }
+wedstrijd2 = Match { team1 = voetbalteamGemiddeld, team2 = voetbalteamVerdedigend, score = (1, 1) }
+wedstrijd3 = Match { team1 = voetbalteamVerdedigend, team2 = voetbalteamAanvallend, score = (0, 2) }
+wedstrijd4 = Match { team1 = voetbalteamAanvallend, team2 = voetbalteamTop, score = (1, 4) }
+wedstrijd5 = Match { team1 = voetbalteamZwak, team2 = voetbalteamTop, score = (0, 6) }
+
+
