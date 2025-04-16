@@ -19,7 +19,7 @@ bestTeam m = if uncurry (>) (score m) then team1 m else team2 m
 worstTeam :: Match -> VoetbalTeam
 worstTeam m = if uncurry (>) (score m) then team2 m else team1 m
 
-bestOvereenkomendeSpelers :: (Comparable a, Show a) => [a] -> [a] -> [Double]
+bestOvereenkomendeSpelers :: Comparable a => [a] -> [a] -> [Double]
 bestOvereenkomendeSpelers [] _ = []
 bestOvereenkomendeSpelers _ [] = []
 bestOvereenkomendeSpelers (x:xs) ys =
@@ -44,12 +44,14 @@ instance Comparable Voetballer where
     )
 
 instance Comparable VoetbalTeam where
-  gelijkwaardigheid a b = do
-    mean (bestOvereenkomendeSpelers (spelers a) (spelers b))
+  gelijkwaardigheid a b =
+    max 
+    (mean (bestOvereenkomendeSpelers (spelers a) (spelers b)))
+    (mean (bestOvereenkomendeSpelers (spelers b) (spelers a)))
   afstand a b =
     let rankVerschil = abs (fromIntegral (ranking a) - fromIntegral (ranking b))
         gel = gelijkwaardigheid a b
-    in rankVerschil * (1 - gel)
+    in rankVerschil * gel
 
 instance Comparable Match where
   gelijkwaardigheid a b = mean
