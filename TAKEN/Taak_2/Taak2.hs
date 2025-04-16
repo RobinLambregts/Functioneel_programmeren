@@ -74,18 +74,19 @@ respecteertDriehoeksongelijkheid xs =
 
 kanBereiken :: (Comparable a, Eq a) => [a] -> a -> a -> Double -> Bool
 kanBereiken lijst start doel maxStap =
-  zoekPad lijst start doel maxStap [start] []
+  zoekPad lijst start doel maxStap []
 
-zoekPad :: (Comparable a, Eq a) => [a] -> a -> a -> Double -> [a] -> [a] -> Bool
-zoekPad _ huidig doel _ _ _
+zoekPad :: (Comparable a, Eq a) => [a] -> a -> a -> Double -> [a] -> Bool
+zoekPad alleElementen huidig doel maxStap bezocht
   | huidig == doel = True
-zoekPad lijst huidig doel maxStap bezocht _
   | huidig `elem` bezocht = False
-zoekPad lijst huidig doel maxStap bezocht _
-  | null buren = False
-  | otherwise = any (\b -> zoekPad lijst b doel maxStap (huidig : bezocht) []) buren
+  | otherwise = any (\buur -> zoekPad alleElementen buur doel maxStap (huidig : bezocht)) geldigeBuren
   where
-    buren = [x | x <- lijst, x /= huidig, afstand huidig x <= maxStap]
+    geldigeBuren = [x | x <- alleElementen,
+                        x /= huidig,
+                        gelijkwaardigheid huidig x > 1 - maxStap]
+
+
 
 -- Dummy data
 noob1 = Voetballer { aanval = 0.10, verdediging = 0.05, keepen = 0.15 }
