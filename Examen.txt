@@ -1,0 +1,10 @@
+- Java naar Haskell kan wel vraag zijn
+- programma met laziness kunnen       herkennen, laziness kunnen aanduiden
+- tijdscomplexiteit
+- openboekvraag RUST
+- type interferentie zelf toepassen
+- 
+
+wetten en concepten vanbuiten kennen.
+
+

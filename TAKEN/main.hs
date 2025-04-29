@@ -1,3 +1,17 @@
+{-
+BRONVERMELDING
+
+Syntax m.b.v. cursus, ChatGPT en Copilot
+Herhalingen laten genereren door AI
+Algoritmes en logica laten nakijken door ChatGPT 
+    -> deze daarna aangepast met eigen kennis,
+       geinspireerd door de uitleg van ChatGPT
+       aangezien deze niet altijd correct was.
+    -> ook de uitleg van Copilot was niet altijd correct
+       maar gaf wel een goede basis.
+-}
+
+
 -------------------------------------------------TAAK 1-------------------------------------------------
 
 data Maanlander = Maanlander
@@ -231,9 +245,7 @@ zoekPad alleElementen huidig doel maxStap bezocht
                         x /= huidig,
                         gelijkwaardigheid huidig x > 1 - maxStap]
 
-
-
--- Dummy data
+-- Dummy data -> gegenereert door ChatGPT
 noob1 = Voetballer { aanval = 0.10, verdediging = 0.05, keepen = 0.15 }
 gemiddeld1 = Voetballer { aanval = 0.95, verdediging = 0.05, keepen = 0.95 }
 verdediger1 = Voetballer { aanval = 0.05, verdediging = 0.80, keepen = 0.05 }
