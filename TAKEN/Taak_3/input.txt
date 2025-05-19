@@ -1,0 +1,7 @@
+a: b,c,d,e
+b: g,f,d
+c: b,a
+d: a,g,e
+e: a
+f: a,b,c,d,e,g
+g: b,d,e
