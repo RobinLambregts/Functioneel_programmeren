@@ -1,51 +1,83 @@
 import System.IO
-import Data.List.Split (splitOn)
 import System.Random
+import System.Random.Shuffle (shuffleM)
+import Data.List (nub, subsequences, sortBy)
+import Data.Ord (comparing)
+import Data.List.Split (splitOn)
 
-data Woning = Woning { eigenaar :: String, compatibel :: [String], verhuisPlan :: Maybe (Woning, Woning)} deriving (Eq, Show)
+-- Datatypes
+data Woning = Woning { eigenaar :: String, compatibel :: [String] } deriving (Eq, Show)
+data Verhuizing = Verhuizing { van :: String, naar :: String } deriving (Eq, Show)
 
-{-
-INPUTFILE STRUCTUUR
-eigenaar1: eigenaarCompat1, eigenaarCompat2, eigenaarCompat3, eigenaarCompat4, eigenaarCompat5
-eigenaar2: eigenaarCompat1, eigenaarCompat2
-eigenaar3: eigenaarCompat1, eigenaarCompat2, eigenaarCompat3
-...
-eigenaarN: eigenaarCompat1, ...
--}
-
-inputToWoningen :: String -> [Woning]
-inputToWoningen input =
-  let linesInput = lines input
-      woningLijnen = map (splitOn ":") linesInput
-      woningData = map (\[eigenaar, compat] ->
-                          (eigenaar, map (filter (/= ' ')) (splitOn "," compat))
-                       ) woningLijnen
-
-      woningen = [ Woning eigenaar compat Nothing
-                 | (eigenaar, compat) <- woningData ]
-  in woningen
-
+-- Input genereren
 genereerInputbestand :: IO ()
 genereerInputbestand = do
-  let eigenaars = ['a'..'j']
-  regels <- sequence [genereerLijn e eigenaars | e <- eigenaars]
+  putStrLn "Minimaal aantal compatibele woningen:"
+  ondergrens <- readLn
+  putStrLn "Maximaal aantal compatibele woningen:"
+  bovengrens <- readLn
+  putStrLn "Aantal inschrijvingen (0 <= x <= 26):"
+  aantal <- readLn
+  let eigenaars = take aantal ['a'..'z']
+  regels <- mapM (genereerLijn ondergrens bovengrens eigenaars) eigenaars
   writeFile "generatedInput.txt" (unlines regels)
 
-genereerLijn :: Char -> [Char] -> IO String
-genereerLijn eigenaar eigenaars = do
-  n <- randomRIO (1, 5) :: IO Int
-  compat <- sequence [randomRIO ('a', 'j') | _ <- [1..n]]
-  let compatStr = concat (voegKommasTussen (map (: []) compat))
-  return (eigenaar : ": " ++ compatStr)
+genereerLijn :: Int -> Int -> [Char] -> Char -> IO String
+genereerLijn ondergrens bovengrens eigenaars eigenaar = do
+  let mogelijke = filter (/= eigenaar) eigenaars
+  n <- randomRIO (ondergrens, min bovengrens (length mogelijke))
+  gekozen <- take n <$> shuffleM mogelijke
+  let compatStr = concat $ voegKommasTussen $ map (:[]) gekozen
+  return $ eigenaar : ": " ++ eigenaar : ", " ++ compatStr
 
 voegKommasTussen :: [String] -> [String]
 voegKommasTussen [] = []
 voegKommasTussen [x] = [x]
 voegKommasTussen (x:xs) = (x ++ ", ") : voegKommasTussen xs
 
+-- Input lezen
+leesWoningen :: FilePath -> IO [Woning]
+leesWoningen bestand = do
+  inhoud <- readFile bestand
+  return $ map parseLijn (lines inhoud)
+
+parseLijn :: String -> Woning
+parseLijn lijn =
+  let (e:rest) = splitOn ":" lijn
+      compat = map (filter (/= ' ')) $ splitOn "," (concat rest)
+  in Woning e (filter (/= e) compat)
+
+-- max verhuizingen bepalen
+alleVerhuizingen :: [Woning] -> [Verhuizing]
+alleVerhuizingen woningen = [Verhuizing (eigenaar w) c | w <- woningen, c <- compatibel w]
+
+isGeldigeSet :: [Verhuizing] -> Bool
+isGeldigeSet verhuizingen =
+  let vanLijst = map van verhuizingen
+      naarLijst = map naar verhuizingen
+  in (length vanLijst == length (nub vanLijst)) &&
+     (length naarLijst == length (nub naarLijst))
+
+maximaleVerhuizingen :: [Verhuizing] -> [Verhuizing]
+maximaleVerhuizingen verhuizingen =
+  let alleCombinaties = subsequences verhuizingen
+      geldigeSets = filter isGeldigeSet alleCombinaties
+  in maximumByLength geldigeSets
+
+maximumByLength :: [[a]] -> [a]
+maximumByLength = foldl (\acc x -> if length x > length acc then x else acc) []
+
+-- Output printen
+printVerhuizingen :: [Verhuizing] -> IO ()
+printVerhuizingen verhuizingen = do
+  putStrLn $ "Max aantal verhuizingen: " ++ show (length verhuizingen)
+  mapM_ (\(Verhuizing v n) -> putStrLn $ "- " ++ v ++ " -> " ++ n) verhuizingen
+
+-- Main functie
 main :: IO ()
 main = do
-  input <- readFile "input.txt"
-  let woningen = inputToWoningen input
   genereerInputbestand
-
+  woningen <- leesWoningen "generatedInput.txt"
+  let kandidaten = alleVerhuizingen woningen
+      maxSet = maximaleVerhuizingen kandidaten
+  printVerhuizingen maxSet

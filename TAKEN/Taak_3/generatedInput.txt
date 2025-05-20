@@ -1,10 +1,20 @@
-a: c, a, a, h
-b: j, b, h, g
-c: h, d, d
-d: c, j, d
-e: a
-f: a
-g: h, d, a, e, b
-h: f, i
-i: a, d, d
-j: g
+a: a, j, l
+b: b, q, k
+c: c, h, e
+d: d, l, j
+e: e, s, n
+f: f, l
+g: g, n
+h: h, s
+i: i, c, t
+j: j, l, n
+k: k, m
+l: l, r
+m: m, c
+n: n, i
+o: o, l, n
+p: p, d
+q: q, r
+r: r, p
+s: s, t
+t: t, i, f
