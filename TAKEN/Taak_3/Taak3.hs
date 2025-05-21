@@ -4,14 +4,15 @@ import System.Random.Shuffle (shuffleM)
 import Data.List (nub, subsequences, sortBy)
 import Data.Ord (comparing)
 import Data.List.Split (splitOn)
+import Debug.Trace (trace)
 
 -- Datatypes
 data Woning = Woning { eigenaar :: String, compatibel :: [String] } deriving (Eq, Show)
 data Verhuizing = Verhuizing { van :: String, naar :: String } deriving (Eq, Show)
 
 -- Input genereren
-genereerInputbestand :: IO ()
-genereerInputbestand = do
+genereerInputbestand :: FilePath -> IO ()
+genereerInputbestand filepath = do
   putStrLn "Minimaal aantal compatibele woningen:"
   ondergrens <- readLn
   putStrLn "Maximaal aantal compatibele woningen:"
@@ -20,15 +21,16 @@ genereerInputbestand = do
   aantal <- readLn
   let eigenaars = take aantal ['a'..'z']
   regels <- mapM (genereerLijn ondergrens bovengrens eigenaars) eigenaars
-  writeFile "generatedInput.txt" (unlines regels)
+  writeFile filepath (unlines regels)
 
 genereerLijn :: Int -> Int -> [Char] -> Char -> IO String
 genereerLijn ondergrens bovengrens eigenaars eigenaar = do
   let mogelijke = filter (/= eigenaar) eigenaars
   n <- randomRIO (ondergrens, min bovengrens (length mogelijke))
   gekozen <- take n <$> shuffleM mogelijke
-  let compatStr = concat $ voegKommasTussen $ map (:[]) gekozen
-  return $ eigenaar : ": " ++ eigenaar : ", " ++ compatStr
+  let gekozenMetEigenaar = eigenaar : gekozen
+  let compatStr = concat $ voegKommasTussen $ map (:[]) gekozenMetEigenaar
+  return $ eigenaar : ": " ++ compatStr
 
 voegKommasTussen :: [String] -> [String]
 voegKommasTussen [] = []
@@ -47,16 +49,29 @@ parseLijn lijn =
       compat = map (filter (/= ' ')) $ splitOn "," (concat rest)
   in Woning e (filter (/= e) compat)
 
+-- output schrijven
+schrijfOutput :: FilePath -> [Verhuizing] -> IO ()
+schrijfOutput bestand verhuizingen = do
+  let inhoud = unlines $ map (\(Verhuizing v n) -> v ++ " -> " ++ n) verhuizingen
+  writeFile bestand inhoud
+
 -- max verhuizingen bepalen
 alleVerhuizingen :: [Woning] -> [Verhuizing]
 alleVerhuizingen woningen = [Verhuizing (eigenaar w) c | w <- woningen, c <- compatibel w]
+
+alleNaarWoningenKomenUitVan :: [String] -> [String] -> Bool
+alleNaarWoningenKomenUitVan vanLijst = all (`elem` vanLijst)
+
 
 isGeldigeSet :: [Verhuizing] -> Bool
 isGeldigeSet verhuizingen =
   let vanLijst = map van verhuizingen
       naarLijst = map naar verhuizingen
-  in (length vanLijst == length (nub vanLijst)) &&
-     (length naarLijst == length (nub naarLijst))
+      printable = verhuizingen
+  in trace (show printable) $
+     (length vanLijst == length (nub vanLijst)) &&
+     (length naarLijst == length (nub naarLijst)) &&
+     alleNaarWoningenKomenUitVan vanLijst naarLijst
 
 maximaleVerhuizingen :: [Verhuizing] -> [Verhuizing]
 maximaleVerhuizingen verhuizingen =
@@ -76,8 +91,10 @@ printVerhuizingen verhuizingen = do
 -- Main functie
 main :: IO ()
 main = do
-  genereerInputbestand
-  woningen <- leesWoningen "generatedInput.txt"
+  genereerInputbestand "Input_Taak_3.txt"
+  woningen <- leesWoningen "Input_Taak_3.txt"
   let kandidaten = alleVerhuizingen woningen
       maxSet = maximaleVerhuizingen kandidaten
-  printVerhuizingen maxSet
+  schrijfOutput "Output_Taak_3.txt" maxSet
+  putStrLn $ "Maximaal aantal verhuizingen: " ++ show (length maxSet)
+  print "Details in output bestand"
