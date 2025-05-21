@@ -11,6 +11,14 @@ Algoritmes en logica laten nakijken door ChatGPT
        maar gaf wel een goede basis.
 -}
 
+-------------------------------------------------IMPORTS-------------------------------------------------
+import System.IO
+import System.Random
+import System.Random.Shuffle (shuffleM)
+import Data.List (nub, subsequences, sortBy)
+import Data.Ord (comparing)
+import Data.List.Split (splitOn)
+import Debug.Trace (trace)
 
 -------------------------------------------------TAAK 1-------------------------------------------------
 
@@ -246,24 +254,116 @@ zoekPad alleElementen huidig doel maxStap bezocht
                         gelijkwaardigheid huidig x > 1 - maxStap]
 
 -- Dummy data -> gegenereert door ChatGPT
-noob1 = Voetballer { aanval = 0.10, verdediging = 0.05, keepen = 0.15 }
-gemiddeld1 = Voetballer { aanval = 0.95, verdediging = 0.05, keepen = 0.95 }
-verdediger1 = Voetballer { aanval = 0.05, verdediging = 0.80, keepen = 0.05 }
-aanvaller1 = Voetballer { aanval = 0.90, verdediging = 0.40, keepen = 0.25 }
-keeper1 = Voetballer { aanval = 0.20, verdediging = 0.35, keepen = 0.95 } 
+larsA = Voetballer { aanval = 0.10, verdediging = 0.05, keepen = 0.15 }
+stijnVC = Voetballer { aanval = 0.95, verdediging = 0.05, keepen = 0.95 }
+robinL = Voetballer { aanval = 0.05, verdediging = 0.80, keepen = 0.05 }
+krisA = Voetballer { aanval = 0.90, verdediging = 0.40, keepen = 0.25 }
+karelK = Voetballer { aanval = 0.20, verdediging = 0.35, keepen = 0.95 } 
 
-teamA = VoetbalTeam { spelers = [noob1, verdediger1, gemiddeld1], ranking = 3 }
-teamB = VoetbalTeam { spelers = [noob1, gemiddeld1, verdediger1], ranking = 6 }
-teamC = VoetbalTeam { spelers = [gemiddeld1, keeper1], ranking = 7 }
-teamD = VoetbalTeam { spelers = [noob1, aanvaller1, verdediger1], ranking = 4 }
-teamE = VoetbalTeam { spelers = [gemiddeld1, aanvaller1], ranking = 8 }
+teamA = VoetbalTeam { spelers = [larsA, robinL, stijnVC], ranking = 3 }
+teamB = VoetbalTeam { spelers = [larsA, stijnVC, robinL], ranking = 6 }
+teamC = VoetbalTeam { spelers = [stijnVC, karelK], ranking = 7 }
+teamD = VoetbalTeam { spelers = [larsA, krisA, robinL], ranking = 4 }
+teamE = VoetbalTeam { spelers = [stijnVC, krisA], ranking = 8 }
 
 wedstrijdA = Match { team1 = teamA, team2 = teamB, score = (1, 2) }
 wedstrijdB = Match { team1 = teamC, team2 = teamD, score = (3, 1) }
 wedstrijdC = Match { team1 = teamE, team2 = teamA, score = (0, 0) }
 wedstrijdD = Match { team1 = teamB, team2 = teamC, score = (2, 2) }
-wedstrijdE = Match { team1 = teamD, team2 = teamE, score = (1, 4) }
+wedstrijdE = Match { team1 = teamD, team2 = teamE, score = (1, 4) }   
 
 ---------------------------------------------------TAAK 3--------------------------------------------------
 
+-- Datatypes
+data Woning = Woning { eigenaar :: String, compatibel :: [String] } deriving (Eq, Show)
+data Verhuizing = Verhuizing { van :: String, naar :: String } deriving (Eq, Show)
+
+-- Input genereren
+genereerInputbestand :: FilePath -> IO ()
+genereerInputbestand filepath = do
+  putStrLn "Minimaal aantal compatibele woningen:"
+  ondergrens <- readLn
+  putStrLn "Maximaal aantal compatibele woningen:"
+  bovengrens <- readLn
+  putStrLn "Aantal inschrijvingen (0 <= x <= 26):"
+  aantal <- readLn
+  let eigenaars = take aantal ['a'..'z']
+  regels <- mapM (genereerLijn ondergrens bovengrens eigenaars) eigenaars
+  writeFile filepath (unlines regels)
+
+genereerLijn :: Int -> Int -> [Char] -> Char -> IO String
+genereerLijn ondergrens bovengrens eigenaars eigenaar = do
+  let mogelijke = filter (/= eigenaar) eigenaars
+  n <- randomRIO (ondergrens, min bovengrens (length mogelijke))
+  gekozen <- take n <$> shuffleM mogelijke
+  let gekozenMetEigenaar = eigenaar : gekozen
+  let compatStr = concat $ voegKommasTussen $ map (:[]) gekozenMetEigenaar
+  return $ eigenaar : ": " ++ compatStr
+
+voegKommasTussen :: [String] -> [String]
+voegKommasTussen [] = []
+voegKommasTussen [x] = [x]
+voegKommasTussen (x:xs) = (x ++ ", ") : voegKommasTussen xs
+
+-- Input lezen
+leesWoningen :: FilePath -> IO [Woning]
+leesWoningen bestand = do
+  inhoud <- readFile bestand
+  return $ map parseLijn (lines inhoud)
+
+parseLijn :: String -> Woning
+parseLijn lijn =
+  let (e:rest) = splitOn ":" lijn
+      compat = map (filter (/= ' ')) $ splitOn "," (concat rest)
+  in Woning e (filter (/= e) compat)
+
+-- output schrijven
+schrijfOutput :: FilePath -> [Verhuizing] -> IO ()
+schrijfOutput bestand verhuizingen = do
+  let inhoud = unlines $ map (\(Verhuizing v n) -> v ++ " -> " ++ n) verhuizingen
+  writeFile bestand inhoud
+
+-- max verhuizingen bepalen
+alleVerhuizingen :: [Woning] -> [Verhuizing]
+alleVerhuizingen woningen = [Verhuizing (eigenaar w) c | w <- woningen, c <- compatibel w]
+
+alleNaarWoningenKomenUitVan :: [String] -> [String] -> Bool
+alleNaarWoningenKomenUitVan vanLijst = all (`elem` vanLijst)
+
+
+isGeldigeSet :: [Verhuizing] -> Bool
+isGeldigeSet verhuizingen =
+  let vanLijst = map van verhuizingen
+      naarLijst = map naar verhuizingen
+      printable = verhuizingen
+  in trace (show printable) $
+     (length vanLijst == length (nub vanLijst)) &&
+     (length naarLijst == length (nub naarLijst)) &&
+     alleNaarWoningenKomenUitVan vanLijst naarLijst
+
+maximaleVerhuizingen :: [Verhuizing] -> [Verhuizing]
+maximaleVerhuizingen verhuizingen =
+  let alleCombinaties = subsequences verhuizingen
+      geldigeSets = filter isGeldigeSet alleCombinaties
+  in maximumByLength geldigeSets
+
+maximumByLength :: [[a]] -> [a]
+maximumByLength = foldl (\acc x -> if length x > length acc then x else acc) []
+
+-- Output printen
+printVerhuizingen :: [Verhuizing] -> IO ()
+printVerhuizingen verhuizingen = do
+  putStrLn $ "Max aantal verhuizingen: " ++ show (length verhuizingen)
+  mapM_ (\(Verhuizing v n) -> putStrLn $ "- " ++ v ++ " -> " ++ n) verhuizingen
+
+-- Main functie
+main3 :: IO ()
+main3 = do
+  genereerInputbestand "Input_Taak_3.txt"
+  woningen <- leesWoningen "Input_Taak_3.txt"
+  let kandidaten = alleVerhuizingen woningen
+      maxSet = maximaleVerhuizingen kandidaten
+  schrijfOutput "Output_Taak_3.txt" maxSet
+  putStrLn $ "Maximaal aantal verhuizingen: " ++ show (length maxSet)
+  print "Details in output bestand"
 
